@@ -90,7 +90,9 @@ int main()
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
 
 	cout << endl << endl;
-	cout << "Beginning with GPU" << endl;
+	cout << "Beginning with GPU ";
+	res_int = GPU_Simple::launch_addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
+	cout << endl;
 
 	cout << endl << "addUp:  \t";
 	cout << "\tKernel_Runtime ";
@@ -100,6 +102,7 @@ int main()
 	elapsed = finish - start;
 	cout << setprecision(6) << "\tOverall_Runtime " << elapsed.count() * 1000;
 	cout << "\tSum(" << res_int << ")";
+
 	cout << endl << "faster addUp:\t";
 	cout << "\tKernel_Runtime ";
 	start = std::chrono::high_resolution_clock::now();
