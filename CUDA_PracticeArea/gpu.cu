@@ -1,6 +1,6 @@
 
 #include "gpu.cuh"
-#include <chrono>  // for high_resolution_clock
+#include <chrono>
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -8,8 +8,9 @@
 #include <assert.h>
 
 using namespace std;
+__constant__ int int_array_CM[12345]; //Adapt to used datasize
 
-__global__ void GPU_Simple::addUp(int* int_array, const int* int_array_length, int* maxVal) {
+__global__ void GPU_Simple::addUp(int* int_array, const int* int_array_length) {
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
     for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
         __syncthreads();
@@ -25,7 +26,6 @@ __global__ void GPU_Simple::addUp(int* int_array, const int* int_array_length, i
 int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
     int* dev_int_array = nullptr;
     int* dev_int_array_length = nullptr;
-    int* dev_maxVal = nullptr;
     int host_maxVal = 0;
 
     cudaError_t cudaStatus;
@@ -40,11 +40,6 @@ int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
         exit;
     }
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
-    cudaStatus = cudaMalloc((void**)&dev_maxVal, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
         exit;
@@ -65,7 +60,7 @@ int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_maxVal); // start kernel (executed on device)
+    GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -97,12 +92,11 @@ int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
 
     cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
-    cudaFree(dev_maxVal);
 
     return host_maxVal;
 }
 
-__global__ void GPU_Simple::getMax(int* int_array, const int* int_array_length, int* maxVal) {
+__global__ void GPU_Simple::getMax(int* int_array, const int* int_array_length) {
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
     for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
         __syncthreads();
@@ -118,7 +112,6 @@ __global__ void GPU_Simple::getMax(int* int_array, const int* int_array_length, 
 int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) {
     int* dev_int_array = nullptr;
     int* dev_int_array_length = nullptr;
-    int* dev_maxVal = nullptr;
     int host_maxVal = 0;
 
     cudaError_t cudaStatus;
@@ -133,11 +126,6 @@ int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) 
         exit;
     }
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
-    cudaStatus = cudaMalloc((void**)&dev_maxVal, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
         exit;
@@ -158,7 +146,7 @@ int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) 
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_maxVal); // start kernel (executed on device)
+    GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -190,24 +178,23 @@ int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) 
 
     cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
-    cudaFree(dev_maxVal);
 
     return host_maxVal;
 }
 
-__global__ void GPU_Simple::getMovingAvg(const int* int_array, const int* int_array_length, float* array_smooth, const int* avg_legth) {
+__global__ void GPU_Simple::getMovingAvg(const int* int_array_length, float* array_smooth, const int* avg_legth) {
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < (*int_array_length) && index >= (*avg_legth)){
         float movingAvgVal = 0;
         for (int i = 0; i < *avg_legth; i ++) {
-            movingAvgVal += int_array[index - i];
+            movingAvgVal += int_array_CM[index - i];
         }
         array_smooth[index] =  movingAvgVal / *avg_legth;
     }
 }
 
 void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth) {
-    int* dev_int_array = nullptr;
+    assert(int_array_length == 12345, "datalenghth is not fit for constant memory");
     int* dev_int_array_length = nullptr;
     float* dev_array_smooth = nullptr;
     int* dev_avg_legth = nullptr;
@@ -218,11 +205,11 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
         printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
         exit;
     }
-    cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
+    //cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
+    //if (cudaStatus != cudaSuccess) {
+    //    printf("cudaMalloc failed!");
+    //    exit;
+    //}
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
@@ -238,9 +225,10 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
         printf("cudaMalloc failed!");
         exit;
     }
-    cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    ////cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpyToSymbol(int_array_CM, int_array, int_array_length * sizeof(int));
     if (cudaStatus != cudaSuccess) {
-        printf("cudaMemcpy failed!");
+        printf("cudaMemcpyToSymbol failed!");
         exit;
     }
     cudaStatus = cudaMemcpy(dev_int_array_length, &int_array_length, sizeof(int), cudaMemcpyHostToDevice);
@@ -259,7 +247,7 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Simple::getMovingAvg << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
+    GPU_Simple::getMovingAvg << < grid, threads >> > (dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -285,13 +273,12 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
         exit;
     }
 
-    cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
     cudaFree(dev_array_smooth);
     cudaFree(dev_avg_legth);
 }
 
-__global__ void GPU_Better::addUp(int* int_array, const int* int_array_length, int* maxVal) {
+__global__ void GPU_Better::addUp(int* int_array, const int* int_array_length) {
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
     for (unsigned int stride = blockDim.x; stride > 1;) {
         __syncthreads();
@@ -307,7 +294,6 @@ __global__ void GPU_Better::addUp(int* int_array, const int* int_array_length, i
 int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
     int* dev_int_array = nullptr;
     int* dev_int_array_length = nullptr;
-    int* dev_maxVal = nullptr;
     int host_maxVal = 0;
 
     cudaError_t cudaStatus;
@@ -322,11 +308,6 @@ int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
         exit;
     }
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
-    cudaStatus = cudaMalloc((void**)&dev_maxVal, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
         exit;
@@ -347,7 +328,7 @@ int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_maxVal); // start kernel (executed on device)
+    GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -379,12 +360,11 @@ int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
 
     cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
-    cudaFree(dev_maxVal);
 
     return host_maxVal;
 }
 
-__global__ void GPU_Better::getMax(int* int_array, const int* int_array_length, int* maxVal) {
+__global__ void GPU_Better::getMax(int* int_array, const int* int_array_length) {
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
     for (unsigned int stride = blockDim.x; stride > 1;) {
         __syncthreads();
@@ -400,7 +380,6 @@ __global__ void GPU_Better::getMax(int* int_array, const int* int_array_length, 
 int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) {
     int* dev_int_array = nullptr;
     int* dev_int_array_length = nullptr;
-    int* dev_maxVal = nullptr;
     int host_maxVal = 0;
 
     cudaError_t cudaStatus;
@@ -415,11 +394,6 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
         exit;
     }
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
-    cudaStatus = cudaMalloc((void**)&dev_maxVal, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
         exit;
@@ -440,7 +414,7 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_maxVal); // start kernel (executed on device)
+    GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -472,12 +446,12 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
 
     cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
-    cudaFree(dev_maxVal);
 
     return host_maxVal;
 }
 
-__global__ void GPU_Tiled::getMovingAvg(const int* int_array, const int* int_array_length, float* array_smooth, const int* avg_legth) {
+__global__ void GPU_Tiled::getMovingAvg(const int* int_array_length, float* array_smooth, const int* avg_legth) {
+    assert(*int_array_length == 12345, "datalenghth is not fit for constant memory");
     constexpr int tile_Width = 1024;
     constexpr int halo = 64 - 1;
     constexpr int sharedMemoryLength = tile_Width + halo;
@@ -490,7 +464,7 @@ __global__ void GPU_Tiled::getMovingAvg(const int* int_array, const int* int_arr
     if (index < (*int_array_length) && index >= filter_length) {
         for (short i = 0; i < ceil(((float)sharedMemoryLength) / blockDim.x); i++) {
             if (threadIdx.x + i * tile_Width < sharedMemoryLength) {
-                int_array_SM[threadIdx.x + i * tile_Width] = int_array[index - halo + i * tile_Width];
+                int_array_SM[threadIdx.x + i * tile_Width] = int_array_CM[index - halo + i * tile_Width];
             }
         }
         __syncthreads();
@@ -503,7 +477,6 @@ __global__ void GPU_Tiled::getMovingAvg(const int* int_array, const int* int_arr
 }
 
 void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth) {
-    int* dev_int_array = nullptr;
     int* dev_int_array_length = nullptr;
     float* dev_array_smooth = nullptr;
     int* dev_avg_legth = nullptr;
@@ -514,11 +487,11 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
         printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
         exit;
     }
-    cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaMalloc failed!");
-        exit;
-    }
+    //cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
+    //if (cudaStatus != cudaSuccess) {
+    //    printf("cudaMalloc failed!");
+    //    exit;
+    //}
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
@@ -534,7 +507,8 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
         printf("cudaMalloc failed!");
         exit;
     }
-    cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    //cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpyToSymbol(int_array_CM, int_array, int_array_length * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMemcpy failed!");
         exit;
@@ -555,7 +529,7 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Tiled::getMovingAvg << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
+    GPU_Tiled::getMovingAvg << < grid, threads >> > (dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -581,7 +555,6 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
         exit;
     }
 
-    cudaFree(dev_int_array);
     cudaFree(dev_int_array_length);
     cudaFree(dev_array_smooth);
     cudaFree(dev_avg_legth);

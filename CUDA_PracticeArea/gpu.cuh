@@ -8,13 +8,13 @@
 namespace GPU_Simple {
 
     //Simple base gpu implementations
-    __global__ void addUp(int* int_array, const int* int_array_length, int* maxVal);
+    __global__ void addUp(int* int_array, const int* int_array_length);
     int launch_addUp(const int* int_array, const int int_array_length);
 
-    __global__ void getMax(int* int_array, const int* int_array_length, int* maxVal);
+    __global__ void getMax(int* int_array, const int* int_array_length);
     int launch_getMax(const int* int_array, const int int_array_length);
 
-    __global__ void getMovingAvg(const int* int_array, const int* int_array_length, float* array_smooth, const int* avg_legth);
+    __global__ void getMovingAvg(const int* int_array_length, float* array_smooth, const int* avg_legth);
     void launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth);
 
 }
@@ -23,10 +23,10 @@ namespace GPU_Better {
 
     //Bettere gpu implementations
     //Much less branch divergence per warp
-    __global__ void addUp(int* int_array, const int* int_array_length, int* maxVal);
+    __global__ void addUp(int* int_array, const int* int_array_length);
     int launch_addUp(const int* int_array, const int int_array_length);
 
-    __global__ void getMax(int* int_array, const int* int_array_length, int* maxVal);
+    __global__ void getMax(int* int_array, const int* int_array_length);
     int launch_getMax(const int* int_array, const int int_array_length);
 
 }
@@ -41,7 +41,7 @@ namespace GPU_Tiled {
     //         = avg_legth = (sharedMemPerBlock - 4092) / 4
     //      -> use maxThreadsPerBlock since sharedMemPerBlock is not the limitng factor
     //      -> larger avg_legth is better for the shared memory usage  
-    __global__ void getMovingAvg(const int* int_array, const int* int_array_length, float* array_smooth, const int* avg_legth);
+    __global__ void getMovingAvg(const int* int_array_length, float* array_smooth, const int* avg_legth);
     void launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth);
 
 }
