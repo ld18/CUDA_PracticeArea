@@ -51,7 +51,7 @@ int main()
 	cout << "Beginning with CPU" << endl;
 	res_int = CPU_Baseline::addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
 
-	cout << endl << "addUp:  \t";
+	cout << endl << "addUp:  \t\t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	res_int = CPU_Baseline::addUp(int_array, int_array_length);
@@ -60,7 +60,7 @@ int main()
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << "\tSum(" << res_int << ")";
 
-	cout << endl << "Threaded addUp:\t";
+	cout << endl << "2 threads addUp:\t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	res_int = CPU_Threaded::launch_addUp(int_array, int_array_length);
@@ -87,7 +87,7 @@ int main()
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << "\tAvg(" << res_float << ")";
 
-	cout << endl << "getMovingAvg:\t";
+	cout << endl << "getMovingAvg:\t\t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	float array_smooth[int_array_length] = { 0 };
@@ -96,6 +96,16 @@ int main()
 	elapsed = finish - start;
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
+
+	cout << endl << "2 threads getMovingAvg:\t";
+	cout << "\tRuntime ";
+	start = std::chrono::high_resolution_clock::now();
+	float array_smooth_4[int_array_length] = { 0 };
+	CPU_Threaded::launch_getMovingAvg(int_array, int_array_length, array_smooth_4, avg_legth);
+	finish = std::chrono::high_resolution_clock::now();
+	elapsed = finish - start;
+	cout << setprecision(6) << elapsed.count() * 1000;
+	cout << setprecision(4) << "\tMovAvg(" << array_smooth_4[avg_legth - 1] << ", " << array_smooth_4[avg_legth] << ", " << array_smooth_4[100] << ", " << array_smooth_4[1030] << ", " << array_smooth_4[int_array_length - 10] << ", " << array_smooth_4[int_array_length - 60] << ", " << array_smooth_4[int_array_length - 50] << ", " << array_smooth_4[int_array_length - 1] << ")";
 
 	cout << endl << endl;
 	cout << "Beginning with GPU " << endl;
