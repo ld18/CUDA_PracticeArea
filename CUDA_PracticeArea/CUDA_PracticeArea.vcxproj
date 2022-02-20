@@ -85,6 +85,9 @@
     <ClInclude Include="data.h" />
     <ClInclude Include="gpu.cuh" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\Screenshot 2022-01-27 185352.jpg" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.targets" />

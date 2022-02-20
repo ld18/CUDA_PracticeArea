@@ -36,7 +36,7 @@ namespace CPU_Baseline {
 		for (int i = 0; i < int_array_length; i++) {
 			if (i >= avg_legth) {
 				float movingAvgVal = 0;
-				for (int c = 0; c < avg_legth; c++) {
+				for (unsigned short c = 0; c < avg_legth; c++) {
 					movingAvgVal += int_array[i - c];
 				}
 				array_smooth[i] = movingAvgVal / avg_legth;
@@ -46,27 +46,26 @@ namespace CPU_Baseline {
 }
 namespace CPU_Threaded {
 	int launch_addUp(const int* int_array, const int& int_array_length) {
-		const int maxNumberOfThreads = max((int)thread::hardware_concurrency(), 4); //can return 0, for some plattforms
-		const int numberOfThreads = 2;// maxNumberOfThreads;
+		const unsigned short maxNumberOfThreads = max((int)thread::hardware_concurrency(), 4); //can return 0, for some plattforms
+		const unsigned short numberOfThreads = 2;// maxNumberOfThreads;
 		const int chunkSize = int_array_length / numberOfThreads;
 		vector<future<int>> results;
-		for (int i = 0; i < numberOfThreads - 1; ++i) {
+		for (unsigned short i = 0; i < numberOfThreads - 1; ++i) {
 			results.push_back(async(launch::deferred, CPU_Baseline::addUp, int_array + i * chunkSize, chunkSize));
 		}
 		int sum = CPU_Baseline::addUp(int_array + (numberOfThreads - 1) * chunkSize, chunkSize);
-		for (int i = 0; i < int_array_length % numberOfThreads; ++i) {
+		for (unsigned short i = 0; i < int_array_length % numberOfThreads; ++i) {
 			sum += int_array[i + chunkSize * numberOfThreads];
 		}
-		for (int i = 0; i < numberOfThreads - 1; ++i) {
+		for (unsigned short i = 0; i < numberOfThreads - 1; ++i) {
 			sum += results[i].get();
 		}
 		return sum;
 	}
 	void getMovingAvg(const int* int_array, const int& int_array_length, float* array_smooth, const int& data_position, const int& data_lenght, const int& avg_legth) {
-		float movingAvgVal = 0;
 		for (int i = 0; i < data_lenght; i++) {
 			if (data_position + i >= avg_legth) {
-				movingAvgVal = 0;
+				float movingAvgVal = 0;
 				for (unsigned short c = 0; c < avg_legth; c++) {
 					movingAvgVal += int_array[data_position + i - c];
 				}
@@ -75,16 +74,16 @@ namespace CPU_Threaded {
 		}
 	}
 	void launch_getMovingAvg(const int* int_array, const int& int_array_length, float* array_smooth, const int& avg_legth) {
-		const int maxNumberOfThreads = max((int)thread::hardware_concurrency(), 4); //can return 0, for some plattforms
-		const int numberOfThreads = 2;// maxNumberOfThreads;
+		const unsigned short maxNumberOfThreads = max((int)thread::hardware_concurrency(), 4); //can return 0, for some plattforms
+		const unsigned short numberOfThreads = 2;// maxNumberOfThreads;
 		const int chunkSize = int_array_length / numberOfThreads;
-		const int chunkSize_remainder = int_array_length % chunkSize;
+		const unsigned short chunkSize_remainder = int_array_length % chunkSize;
 		vector<future<void>> results;
-		for (int i = 0; i < numberOfThreads - 1; ++i) {
+		for (unsigned short i = 0; i < numberOfThreads - 1; ++i) {
 			results.push_back(async(launch::async, getMovingAvg, int_array, int_array_length, array_smooth, i * chunkSize, chunkSize, avg_legth));
 		}
 		getMovingAvg(int_array, int_array_length, array_smooth, (numberOfThreads - 1) * chunkSize, chunkSize + chunkSize_remainder, avg_legth);
-		for (int i = 0; i < numberOfThreads - 1; ++i) {
+		for (unsigned short i = 0; i < numberOfThreads - 1; ++i) {
 			results[i].wait();
 		}	
 	}

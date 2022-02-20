@@ -51,7 +51,7 @@ int main()
 	cout << "Beginning with CPU" << endl;
 	res_int = CPU_Baseline::addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
 
-	cout << endl << "addUp:  \t\t";
+	cout << endl << "addUp:  \t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	res_int = CPU_Baseline::addUp(int_array, int_array_length);
@@ -60,7 +60,7 @@ int main()
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << "\tSum(" << res_int << ")";
 
-	cout << endl << "2 threads addUp:\t";
+	cout << endl << "2 threads addUp:";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	res_int = CPU_Threaded::launch_addUp(int_array, int_array_length);
@@ -87,7 +87,7 @@ int main()
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << "\tAvg(" << res_float << ")";
 
-	cout << endl << "getMovingAvg:\t\t";
+	cout << endl << "getMovingAvg:\t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	float array_smooth[int_array_length] = { 0 };
@@ -97,7 +97,7 @@ int main()
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
 
-	cout << endl << "2 threads getMovingAvg:\t";
+	cout << endl << "2 threads getMovingAvg:";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	float array_smooth_4[int_array_length] = { 0 };
@@ -155,7 +155,7 @@ int main()
 	GPU_Simple::launch_getMovingAvg(int_array, int_array_length, array_smooth_2, avg_legth);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
-	cout << setprecision(6) << "\tOverallt_Runtime " << elapsed.count() * 1000;
+	cout << setprecision(6) << "\tOverall_Runtime " << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
 	cout << endl << "tiled getMovingAvg:\t";
 	cout << "Kernel_Runtime ";
@@ -164,7 +164,7 @@ int main()
 	GPU_Tiled::launch_getMovingAvg(int_array, int_array_length, array_smooth_3, avg_legth);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
-	cout << setprecision(6) << "\tOverallt_Runtime " << elapsed.count() * 1000;
+	cout << setprecision(6) << "\tOverall_Runtime " << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
 
 
