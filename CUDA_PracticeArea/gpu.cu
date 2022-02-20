@@ -451,12 +451,9 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
 }
 
 __global__ void GPU_Tiled::getMovingAvg(const int* int_array_length, float* array_smooth, const int* avg_legth) {
-    assert(*int_array_length == 12345, "datalenghth is not fit for constant memory");
     constexpr int tile_Width = 1024;
     constexpr int halo = 64 - 1;
     constexpr int sharedMemoryLength = tile_Width + halo;
-    assert((*avg_legth) - 1 == halo);
-    assert(blockDim.x == tile_Width);
     __shared__ int int_array_SM[sharedMemoryLength];
 
     const short filter_length = *avg_legth;
@@ -477,6 +474,8 @@ __global__ void GPU_Tiled::getMovingAvg(const int* int_array_length, float* arra
 }
 
 void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth) {
+    assert(int_array_length == 12345, "datalenghth is not fit for constant memory");
+    assert(avg_legth == 64);
     int* dev_int_array_length = nullptr;
     float* dev_array_smooth = nullptr;
     int* dev_avg_legth = nullptr;

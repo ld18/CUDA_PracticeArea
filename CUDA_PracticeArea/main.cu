@@ -1,5 +1,5 @@
 
-#include <chrono>  // for high_resolution_clock
+#include <chrono> 
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -9,13 +9,11 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-
 #include "cpu.h"
 #include "gpu.cuh"
 #include "data.h"
 
 using namespace std;
-
 
 int main()
 {
@@ -50,12 +48,22 @@ int main()
 	cout << "Used data is a array of ints (0-111) with the length " << int_array_length << ". " << avg_legth << " values are used for the moving average calculation." << endl;
 
 	cout << endl << endl;
-	cout <<"Beginning with CPU" << endl;
+	cout << "Beginning with CPU" << endl;
+	res_int = CPU_Baseline::addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
 
 	cout << endl << "addUp:  \t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
-	res_int = CPU::addUp(int_array, int_array_length);
+	res_int = CPU_Baseline::addUp(int_array, int_array_length);
+	finish = std::chrono::high_resolution_clock::now();
+	elapsed = finish - start;
+	cout << setprecision(6) << elapsed.count() * 1000;
+	cout << "\tSum(" << res_int << ")";
+
+	cout << endl << "Threaded addUp:\t";
+	cout << "\tRuntime ";
+	start = std::chrono::high_resolution_clock::now();
+	res_int = CPU_Threaded::launch_addUp(int_array, int_array_length);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
 	cout << setprecision(6) << elapsed.count() * 1000;
@@ -64,7 +72,7 @@ int main()
 	cout << endl << "getMax: \t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
-	res_int = CPU::getMax(int_array, int_array_length);
+	res_int = CPU_Baseline::getMax(int_array, int_array_length);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
 	cout << setprecision(6) << elapsed.count() * 1000;
@@ -73,7 +81,7 @@ int main()
 	cout << endl << "getAvg: \t";
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
-	res_float = CPU::getAvg(int_array, int_array_length);
+	res_float = CPU_Baseline::getAvg(int_array, int_array_length);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
 	cout << setprecision(6) << elapsed.count() * 1000;
@@ -83,14 +91,15 @@ int main()
 	cout << "\tRuntime ";
 	start = std::chrono::high_resolution_clock::now();
 	float array_smooth[int_array_length] = { 0 };
-	CPU::getMovingAvg(int_array, int_array_length, array_smooth, avg_legth);
+	CPU_Baseline::getMovingAvg(int_array, int_array_length, array_smooth, avg_legth);
 	finish = std::chrono::high_resolution_clock::now();
 	elapsed = finish - start;
 	cout << setprecision(6) << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
 
 	cout << endl << endl;
-	cout << "Beginning with GPU ";
+	cout << "Beginning with GPU " << endl;
+	cout << "Priming call (because first run takes longer, just ignore) ";
 	res_int = GPU_Simple::launch_addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
 	cout << endl;
 

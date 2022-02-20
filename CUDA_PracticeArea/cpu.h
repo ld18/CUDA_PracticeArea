@@ -1,10 +1,14 @@
 #pragma once
 
 #include <algorithm>
+#include <future>
+#include <functional>
+#include <algorithm>
+#include <vector>
 
 using namespace std;
 
-namespace CPU {
+namespace CPU_Baseline {
 
 	//Vanilla base cpu implementations
 	int addUp(const int* int_array, const int& int_array_length) {
@@ -39,4 +43,27 @@ namespace CPU {
 			}
 		}
 	}
+}
+namespace CPU_Threaded {
+	int launch_addUp(const int* int_array, const int& int_array_length) {
+		const int maxNumberOfThreads = max((int)thread::hardware_concurrency(), 4); //can return 0, for some plattforms
+		const int numberOfThreads = maxNumberOfThreads;
+		const int chunkSize = int_array_length / numberOfThreads;
+		vector<future<int>> results;
+		for (int i = 0; i < numberOfThreads - 1; ++i) {
+			results.push_back(async(launch::deferred, CPU_Baseline::addUp, int_array + i * chunkSize, chunkSize));
+		}
+		int sum = CPU_Baseline::addUp(int_array + (numberOfThreads - 1) * chunkSize, chunkSize);
+		for (int i = 0; i < int_array_length % numberOfThreads; ++i) {
+			sum += int_array[i + chunkSize * numberOfThreads];
+		}
+		for (int i = 0; i < numberOfThreads - 1; ++i) {
+			sum += results[i].get();
+		}
+		return sum;
+	}
+	void launch_getMovingAvg(const int* int_array, const int& int_array_length, float* array_smooth, const int& avg_legth) {
+		//TODO
+	}
+
 }
