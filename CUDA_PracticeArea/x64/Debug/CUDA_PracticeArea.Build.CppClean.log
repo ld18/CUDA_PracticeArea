@@ -1,5 +1,3 @@
-x64\debug\gpu.cu.obj
-x64\debug\main.cu.obj
 d:\_repositories\projects\testarea\cuda_practicearea\x64\debug\cuda_practicearea.lib
 d:\_repositories\projects\testarea\cuda_practicearea\x64\debug\cuda_practicearea.exp
 d:\_repositories\projects\testarea\cuda_practicearea\cuda_practicearea\x64\debug\cuda_practicearea.ilk

@@ -61,6 +61,7 @@ int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
 
     auto start = std::chrono::high_resolution_clock::now();
     GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -147,6 +148,7 @@ int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) 
 
     auto start = std::chrono::high_resolution_clock::now();
     GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -248,6 +250,7 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
 
     auto start = std::chrono::high_resolution_clock::now();
     GPU_Simple::getMovingAvg << < grid, threads >> > (dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -329,6 +332,7 @@ int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
 
     auto start = std::chrono::high_resolution_clock::now();
     GPU_Simple::addUp << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -415,6 +419,7 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
 
     auto start = std::chrono::high_resolution_clock::now();
     GPU_Simple::getMax << < grid, threads >> > (dev_int_array, dev_int_array_length); // start kernel (executed on device)
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
@@ -528,7 +533,8 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
     dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
 
     auto start = std::chrono::high_resolution_clock::now();
-    GPU_Tiled::getMovingAvg << < grid, threads >> > (dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)
+    GPU_Tiled::getMovingAvg << < grid, threads >> > (dev_int_array_length, dev_array_smooth, dev_avg_legth); // start kernel (executed on device)s
+    cudaDeviceSynchronize();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double>elapsed = finish - start;
     cout << setprecision(8) << elapsed.count() * 1000;
