@@ -72,14 +72,6 @@ int GPU_Simple::launch_addUp(const int* int_array, const int int_array_length) {
         exit;
     }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
-        exit;
-    }
-
     // Copy output vector from GPU buffer to host memory.
     int blockSum = 0;
     for (int i = 0; i < grid.x; i++) {
@@ -159,14 +151,6 @@ int GPU_Simple::launch_getMax(const int* int_array, const int int_array_length) 
         exit;
     }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
-        exit;
-    }
-
     // Copy output vector from GPU buffer to host memory.
     int blockMax = 0;
     for (int i = 0; i < grid.x; i++) {
@@ -207,11 +191,6 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
         printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
         exit;
     }
-    //cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
-    //if (cudaStatus != cudaSuccess) {
-    //    printf("cudaMalloc failed!");
-    //    exit;
-    //}
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
@@ -227,7 +206,6 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
         printf("cudaMalloc failed!");
         exit;
     }
-    ////cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
     cudaStatus = cudaMemcpyToSymbol(int_array_CM, int_array, int_array_length * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMemcpyToSymbol failed!");
@@ -258,14 +236,6 @@ void GPU_Simple::launch_getMovingAvg(const int* int_array, const int int_array_l
     cudaStatus = cudaGetLastError();
     if (cudaStatus != cudaSuccess) {
         printf("addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        exit;
-    }
-
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
         exit;
     }
 
@@ -340,14 +310,6 @@ int GPU_Better::launch_addUp(const int* int_array, const int int_array_length) {
     cudaStatus = cudaGetLastError();
     if (cudaStatus != cudaSuccess) {
         printf("addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        exit;
-    }
-
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
         exit;
     }
 
@@ -430,14 +392,6 @@ int GPU_Better::launch_getMax(const int* int_array, const int int_array_length) 
         exit;
     }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
-        exit;
-    }
-
     // Copy output vector from GPU buffer to host memory.
     int blockMax = 0;
     for (int i = 0; i < grid.x; i++) {
@@ -491,11 +445,6 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
         printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
         exit;
     }
-    //cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
-    //if (cudaStatus != cudaSuccess) {
-    //    printf("cudaMalloc failed!");
-    //    exit;
-    //}
     cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
     if (cudaStatus != cudaSuccess) {
         printf("cudaMalloc failed!");
@@ -545,14 +494,6 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
         exit;
     }
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        printf("cudaDeviceSynchronize returned error code % d after launching addKernel!\n", cudaStatus);
-        exit;
-    }
-
     // Copy output vector from GPU buffer to host memory.
     cudaStatus = cudaMemcpy(array_smooth, dev_array_smooth, int_array_length * sizeof(float), cudaMemcpyDeviceToHost);
     if (cudaStatus != cudaSuccess) {
@@ -563,4 +504,184 @@ void GPU_Tiled::launch_getMovingAvg(const int* int_array, const int int_array_le
     cudaFree(dev_int_array_length);
     cudaFree(dev_array_smooth);
     cudaFree(dev_avg_legth);
+}
+
+__global__ void GPU_Graphs::countValuesOverThreshold(const int* int_array, const int* int_array_length, const int* threshold, int* counter) {
+    const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < *int_array_length) {
+        if (int_array[index] >= *threshold) {
+            atomicAdd(counter, 1);
+        }
+    }
+}
+
+int GPU_Graphs::launch_countValuesOverThreshold_interative(const int* int_array, const int& int_array_length, const int& threshold) {
+    int* dev_int_array = nullptr;
+    int* dev_int_array_length = nullptr;
+    int* dev_threshold = nullptr;
+    int* dev_counter = nullptr;
+    int counter = 0;
+
+    cudaError_t cudaStatus;
+    cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_threshold, sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_counter, sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_int_array_length, &int_array_length, sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_threshold, &threshold, sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_counter, &counter, sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+
+    constexpr int blockSize = 1024;
+    dim3 threads(blockSize); // number of threads per block
+    dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
+
+    auto start = std::chrono::high_resolution_clock::now();
+    GPU_Graphs::countValuesOverThreshold << < grid, threads >> > (dev_int_array, dev_int_array_length, dev_threshold, dev_counter); // start kernel (executed on device)
+    cudaDeviceSynchronize();
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double>elapsed = finish - start;
+    cout << setprecision(8) << elapsed.count() * 1000;
+
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        printf("addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+        exit;
+    }
+
+    // Copy output vector from GPU buffer to host memory.
+    int count = 0;
+    cudaStatus = cudaMemcpy(&count, dev_counter, sizeof(int), cudaMemcpyDeviceToHost);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+
+    cudaFree(dev_int_array);
+    cudaFree(dev_int_array_length);
+    cudaFree(dev_threshold);
+    cudaFree(dev_counter);
+
+    return count;
+}
+
+void GPU_Graphs::launch_countValuesOverThreshold(const int* int_array, const int& int_array_length, int* counts) {
+    int* dev_int_array = nullptr;
+    int* dev_int_array_length = nullptr;
+    int* dev_thresholds = nullptr;
+    int* dev_counters = nullptr;
+    int thresholds[12] = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 };
+
+    cudaError_t cudaStatus;
+    cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_int_array, int_array_length * sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_int_array_length, sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_thresholds, 12 * sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMalloc((void**)&dev_counters, 12 * sizeof(int));
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMalloc failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_int_array, int_array, int_array_length * sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_int_array_length, &int_array_length, sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+    cudaStatus = cudaMemcpy(dev_thresholds, thresholds, 12 * sizeof(int), cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+
+    constexpr int blockSize = 1024;
+    dim3 threads(blockSize); // number of threads per block
+    dim3 grid(ceil((float)int_array_length / blockSize)); // number of blocks in grid
+    
+    cudaStream_t stream;
+    cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 12; i++) {
+        GPU_Graphs::countValuesOverThreshold << < grid, threads, 0, stream >> > (dev_int_array, dev_int_array_length, dev_thresholds + i, dev_counters + i); // start kernel (executed on device)
+    }
+    cudaDeviceSynchronize();
+    auto finish = std::chrono::high_resolution_clock::now();
+    cudaStreamDestroy(stream);
+    std::chrono::duration<double>elapsed = finish - start;
+    cout << setprecision(8) << elapsed.count() * 1000;
+
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        printf("addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+        exit;
+    }
+
+    // Copy output vector from GPU buffer to host memory.
+    cudaStatus = cudaMemcpy(counts, dev_counters, 12 * sizeof(int), cudaMemcpyDeviceToHost);
+    if (cudaStatus != cudaSuccess) {
+        printf("cudaMemcpy failed!");
+        exit;
+    }
+
+    cudaFree(dev_int_array);
+    cudaFree(dev_int_array_length);
+    cudaFree(dev_thresholds);
+    cudaFree(dev_counters);
 }

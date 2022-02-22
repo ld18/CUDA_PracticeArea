@@ -45,3 +45,11 @@ namespace GPU_Tiled {
     void launch_getMovingAvg(const int* int_array, const int int_array_length, float* array_smooth, const int avg_legth);
 
 }
+
+namespace GPU_Graphs {
+
+    __global__ void countValuesOverThreshold(const int* int_array, const int* int_array_length, const int* threshold, int* counter);
+    int launch_countValuesOverThreshold_interative(const int* int_array, const int& int_array_length, const int& threshold);
+    void launch_countValuesOverThreshold(const int* int_array, const int& int_array_length, int* counts);
+
+}

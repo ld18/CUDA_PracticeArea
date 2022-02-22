@@ -47,7 +47,7 @@ int main()
 	cout << "Started Performance comapre" << endl;
 	cout << "Used data is a array of ints (0-111) with the length " << int_array_length << ". " << avg_legth << " values are used for the moving average calculation." << endl;
 
-	cout << endl << endl;
+	cout << endl;
 	cout << "Beginning with CPU" << endl;
 	res_int = CPU_Baseline::addUp(int_array, int_array_length); //Prime Call: first cuda function call is significant slower then second
 
@@ -166,6 +166,41 @@ int main()
 	elapsed = finish - start;
 	cout << setprecision(6) << "\tOverall_Runtime " << elapsed.count() * 1000;
 	cout << setprecision(4) << "\tMovAvg(" << array_smooth[avg_legth - 1] << ", " << array_smooth[avg_legth] << ", " << array_smooth[100] << ", " << array_smooth[1030] << ", " << array_smooth[int_array_length - 10] << ", " << array_smooth[int_array_length - 60] << ", " << array_smooth[int_array_length - 50] << ", " << array_smooth[int_array_length - 1] << ")";
+
+
+	cout << endl << endl << endl;
+	cout << "CUDA Streams" << endl;
+	std::chrono::steady_clock::time_point s, f;
+	std::chrono::duration<double> e;
+
+	cout << endl << "countValuesOverThreshold:" << endl;
+	start = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 111; i += 10) {
+		cout << "Kernel_Runtime ";
+		s = std::chrono::high_resolution_clock::now();
+		res_int = GPU_Graphs::launch_countValuesOverThreshold_interative(int_array, int_array_length, i);
+		f = std::chrono::high_resolution_clock::now();
+		e = f - s;
+		cout << setprecision(6) << "\tOverall_Runtime " << e.count() * 1000;
+		cout << setprecision(4) << "\tcount_over_" << i << "(" << res_int << ")" << endl;
+	}
+	finish = std::chrono::high_resolution_clock::now();
+	elapsed = finish - start;
+	cout << setprecision(6) << "Overall_Runtime iterative kernel calls " << elapsed.count() * 1000;
+
+	cout << endl << endl << "countValuesOverThreshold:" << endl;
+	cout << "Kernel_Runtime ";
+	int counts[12];
+	start = std::chrono::high_resolution_clock::now();
+	GPU_Graphs::launch_countValuesOverThreshold(int_array, int_array_length, counts);
+	finish = std::chrono::high_resolution_clock::now();
+	elapsed = finish - start;
+	cout << endl;
+	for (int i = 0; i < 12; i ++) {
+		cout << "\tcount_over_" << i * 10 << "(" << counts[i] << ")" << endl;
+	}
+	cout << setprecision(6) << "Overall_Runtime concurrently kernel calls " << elapsed.count() * 1000;
+
 
 
 	cout << endl << endl;
